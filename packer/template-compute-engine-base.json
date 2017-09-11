@@ -1,0 +1,77 @@
+{
+  "variables": {
+
+    "subscription_id": "{{env `subscription_id`}}",
+    "client_id": "{{env `client_id`}}",
+    "client_secret": "{{env `client_secret`}}",
+    "tenant_id": "{{env `tenant_id`}}",
+
+    "resource_group_name": "{{env `resource_group`}}",
+    "location": "{{env `location`}}",
+
+    "src_image_os": "Linux",
+    "src_image_publisher": "OpenLogic",
+    "src_image_offer": "CentOS",
+    "src_image_sku": "7.3",
+    "src_image_version": "latest",
+
+    "tgt_image_rg": "{{env `resource_group`}}",
+    "tgt_image_name": "{{env `base_img_name`}}",
+
+    "bake_ssh_user": "veritas",
+    "bake_ssh_pass": "veritas",
+    "bake_rg": "tds-devops-ce-mng-base-bake-rg",
+    "bake_vm": "tds-devops-ce-mng-base-bake-vm",
+    "bake_vm_size": "Standard_D3_v2"
+  },
+
+  "builders": [{
+    "type": "azure-arm",
+
+    "subscription_id": "{{user `subscription_id`}}",
+    "client_id": "{{user `client_id`}}",
+    "client_secret": "{{user `client_secret`}}",
+    "tenant_id": "{{user `tenant_id`}}",
+
+    "location": "{{user `location`}}",
+
+    "os_type": "{{user `src_image_os`}}",
+    "image_publisher": "{{user `src_image_publisher`}}",
+    "image_offer": "{{user `src_image_offer`}}",
+    "image_sku": "{{user `src_image_sku`}}",
+    "image_version": "{{user `src_image_version`}}",
+    "ssh_pty": "true",
+
+    "managed_image_resource_group_name": "{{user `tgt_image_rg`}}",
+    "managed_image_name": "{{user `tgt_image_name`}}",
+
+    "ssh_username": "{{user `bake_ssh_user`}}",
+    "ssh_password": "{{user `bake_ssh_pass`}}",
+
+    "temp_resource_group_name": "{{user `bake_rg`}}",
+    "temp_compute_name": "{{user `bake_vm`}}",
+    "vm_size": "{{user `bake_vm_size`}}"
+  }],
+
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo '{{user `bake_ssh_pass`}}' | {{ .Vars }} sudo -E -S bash -c '{{ .Path }}'",
+      "script": "scripts/install-ansible.sh"
+    },
+    {
+      "type": "ansible-local",
+      "role_paths": [ "ansible/roles/compute-engine-base" ],
+      "playbook_file": "ansible/playbook-compute-engine-base.yml"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo '{{user `bake_ssh_pass`}}' | {{ .Vars }} sudo -S -E sh '{{ .Path }}'",
+      "inline_shebang": "/bin/sh -x",
+      "inline": [
+        "/usr/sbin/waagent -force -deprovision+user && export HISTSIZE=0 && sync"
+      ],
+      "skip_clean": true
+    }
+  ]
+}

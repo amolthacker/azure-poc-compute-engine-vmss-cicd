@@ -1,0 +1,7 @@
+- name: Setup compute-engine-vmss
+  script: files/setup-compute-engine.sh
+  become: true
+
+- name: Add startup-cmd
+  script: files/add-startup-cmd.sh
+  become: true

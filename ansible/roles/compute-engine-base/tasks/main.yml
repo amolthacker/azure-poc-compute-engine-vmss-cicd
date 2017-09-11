@@ -1,0 +1,75 @@
+- name: Update Repos
+  shell: yum -y update && yum -y install epel-release && yum clean all
+
+- name: Install base packages
+  yum:
+    name:
+      - epel-release
+      - git
+      - wget
+      - java-1.8.0-openjdk-devel
+    state: present
+    validate_certs: no
+    disable_gpg_check: yes
+
+- name: Install Build Tools and GCC
+  yum:
+    name:
+      - cmake
+      - curl-devel
+      - cronie
+      - czmq
+      - expat-devel
+      - flex
+      - gcc
+      - gcc-c++
+      - gcc-gfortran
+      - gdb
+      - gettext-devel
+      - glibc-devel
+      - lynx
+      - libattr-devel
+      - libcurl
+      - libcurl-devel
+      - libedit-devel
+      - libffi-devel
+      - libgcc
+      - libstdc++-static
+      - libtool
+      - m4
+      - make
+      - automake
+      - autoconf
+    state: present
+    validate_certs: no
+    disable_gpg_check: yes
+
+- name: Install Boost
+  yum:
+    name:
+     - lapack-devel
+     - blas-devel
+     - boost
+     - boost-devel
+     - swig
+    state: present
+    validate_certs: no
+    disable_gpg_check: yes
+
+
+# TODO: Use Ansible modules
+- name: Install QuantLib
+  script: files/install-quantlib.sh
+  become: true
+
+- name: Install SWIG-Java
+  script: files/install-quantlib-swig-java.sh
+  become: true
+
+- name: Install Go
+  script: files/install-go.sh
+  become: true
+
+- name: Setup Profile
+  script: files/setup-profile.sh
+  become: true

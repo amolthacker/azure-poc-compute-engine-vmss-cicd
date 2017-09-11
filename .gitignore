@@ -1,0 +1,27 @@
+### JetBrains template
+.idea
+
+### Vagrant template
+.vagrant/
+
+### Logs
+*.log
+
+### Packer template
+# Cache objects
+packer_cache/
+
+# For built boxes
+*.box
+
+### Terraform template
+# Compiled files
+*.tfstate
+*.tfstate.backup
+
+# Module directory
+.terraform/
+
+### Ansible template
+*.retry
+

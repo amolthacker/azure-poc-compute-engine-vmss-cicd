@@ -1,0 +1,20 @@
+node {
+    // Console output with ANSI colors
+    ansiColor('xterm') {
+
+        // SCM Checkout
+        stage ('Checkout Src') {
+            // GIT URL
+            git credentialsId: "git-credentials", branch: 'master', url: 'https://github.com/amolthacker/azure-poc-compute-engine-vmss-cicd.git'
+        }
+
+        // Bake Image
+        stage ('Bake Images') {
+            // Run bake script
+            sh '''
+                ./scripts/bake-image.sh -i compute-engine -b yes
+                echo $? > bake-status
+            '''
+        }
+    }
+}

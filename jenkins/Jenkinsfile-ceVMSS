@@ -1,0 +1,79 @@
+node {
+    // Console output with ANSI colors
+    ansiColor('xterm') {
+
+        def bakedImgName = "unknown"
+        // SCM Checkout
+        stage ('Checkout Src') {
+            // GIT URL
+            git credentialsId: "git-credentials", branch: 'master', url: 'https://github.com/amolthacker/azure-poc-compute-engine-vmss.git'
+        }
+
+        // Bake Image
+        stage ('Bake Image') {
+            // Output Packer version
+            //sh "packer --version; echo \$? > packer-version"
+
+            // Run bake script
+            sh '''
+                cd compute-engine-devops
+                ./scripts/bake-image.sh -i compute-engine -b no -n compute-engine-managed-base
+                echo $? > bake-status
+            '''
+
+            // Bake status
+            def bakeStatusExitCode = readFile('bake-status').trim()
+            echo "Bake Status Exit Code : ${bakeStatusExitCode}"
+            if (bakeStatusExitCode == "0") {
+                sh '''
+                    cd compute-engine-devops
+                    bakedImgName=$(cat baker-compute-engine.log | grep "ManagedImageName" | cut -d ':' -f 2 | sed -e 's/^[ \t]*//')
+                    echo $bakedImgName > ../baked-image-name
+                '''
+                bakedImgName = readFile('baked-image-name').trim()
+                echo "Baked Img Name : ${bakedImgName}"
+                if (bakedImgName != "unknown") {
+                    currentBuild.result = 'SUCCESS'
+                } else {
+                    currentBuild.result = 'FAILURE'
+                }
+            } else {
+                currentBuild.result = 'FAILURE'
+            }
+        }
+
+        // Provision Infrastructure
+        stage ('Provision Infra') {
+            // Output Packer version
+            //sh "terraform --version; echo \$? > terraform-version"
+
+            // Provision Infra
+            if (fileExists("compute-engine-devops/terraform/compute-cevmss/.terraform/terraform.tfstate")) {
+                sh "rm -rf compute-engine-devops/terraform/compute-cevmss/.terraform/terraform.tfstate"
+            }
+            sh '''
+                export TF_VAR_vmss_vm_src_img_name=`cat baked-image-name`
+                cd compute-engine-devops
+                echo "De-provisioning infra (if any) ..."
+                ./scripts/provision-infra.sh -a delete -i compute-cevmss
+                if [ $? -ne 0 ]
+                then
+                    echo "Error de-provisioning infra"
+                    exit 1
+                fi
+                echo "Provisioning infra ..."
+                ./scripts/provision-infra.sh -a create -i compute-cevmss
+                echo $? > provision-status
+            '''
+
+            // Provision status
+            def provisionStatusExitCode = readFile('provision-status').trim()
+            echo "Provision Status Exit Code : ${provisionStatusExitCode}"
+            if (provisionStatusExitCode == "0") {
+                currentBuild.result = 'SUCCESS'
+            } else {
+                currentBuild.result = 'FAILURE'
+            }
+        }
+    }
+}

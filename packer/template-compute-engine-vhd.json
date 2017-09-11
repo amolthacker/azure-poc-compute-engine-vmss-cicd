@@ -1,0 +1,68 @@
+{
+  "variables": {
+
+    "subscription_id": "{{env `subscription_id`}}",
+    "client_id": "{{env `client_id`}}",
+    "client_secret": "{{env `client_secret`}}",
+    "tenant_id": "{{env `tenant_id`}}",
+
+    "resource_group_name": "{{env `resource_group`}}",
+    "location": "{{env `location`}}",
+
+    "src_image_os": "Linux",
+    "src_img_url": "{{env `base_img_url`}}",
+
+    "tgt_storage_account": "tdsdevops",
+    "tgt_container_name": "computeimg",
+    "tgt_image_prefix": "compute-engine",
+
+    "bake_ssh_user": "veritas",
+    "bake_ssh_pass": "veritas",
+    "bake_rg": "tds-devops-compute-bake-rg",
+    "bake_vm": "tds-devops-compute-bake-vm",
+    "bake_vm_size": "Standard_D2_v2"
+  },
+
+  "builders": [{
+    "type": "azure-arm",
+
+    "subscription_id": "{{user `subscription_id`}}",
+    "client_id": "{{user `client_id`}}",
+    "client_secret": "{{user `client_secret`}}",
+    "tenant_id": "{{user `tenant_id`}}",
+
+    "resource_group_name": "{{user `resource_group_name`}}",
+    "location": "{{user `location`}}",
+    "storage_account": "{{user `tgt_storage_account`}}",
+    "capture_container_name": "{{user `tgt_container_name`}}",
+    "capture_name_prefix": "{{user `tgt_image_prefix`}}",
+
+    "ssh_username": "{{user `bake_ssh_user`}}",
+    "ssh_password": "{{user `bake_ssh_pass`}}",
+
+    "os_type": "{{user `src_image_os`}}",
+    "image_url": "{{user `src_img_url`}}",
+    "ssh_pty": "true",
+
+    "temp_resource_group_name": "{{user `bake_rg`}}",
+    "temp_compute_name": "{{user `bake_vm`}}",
+    "vm_size": "{{user `bake_vm_size`}}"
+  }],
+
+  "provisioners": [
+    {
+      "type": "ansible-local",
+      "role_paths": [ "ansible/roles/{{user `tgt_image_prefix`}}" ],
+      "playbook_file": "ansible/playbook-{{user `tgt_image_prefix`}}.yml"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo '{{user `bake_ssh_pass`}}' | {{ .Vars }} sudo -S -E sh '{{ .Path }}'",
+      "inline_shebang": "/bin/sh -x",
+      "inline": [
+        "/usr/sbin/waagent -force -deprovision && export HISTSIZE=0 && sync"
+      ],
+      "skip_clean": true
+    }
+  ]
+}
